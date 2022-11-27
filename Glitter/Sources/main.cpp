@@ -10,21 +10,25 @@
 #include <cstdlib>
 
 // Shader sources
-const GLchar* vertexSource = R"glsl(
+const GLchar *vertexSource = R"glsl(
     #version 150 core
     in vec2 position;
+    in vec3 color;
+    out vec3 Color;
+
     void main()
     {
+        Color = color;
         gl_Position = vec4(position, 0.0, 1.0);
     }
 )glsl";
-const GLchar* fragmentSource = R"glsl(
+const GLchar *fragmentSource = R"glsl(
     #version 150 core
-    uniform vec3 triangleColor;
+    in vec3 Color;
     out vec4 outColor;
     void main()
     {
-        outColor = vec4(triangleColor, 1.0);
+        outColor = vec4(Color, 1.0);
     }
 )glsl";
 
@@ -51,9 +55,9 @@ GLuint createShader(const GLchar* src, GLenum shader)
 GLuint createTriangle()
 {
     GLfloat vertices[] = {
-        0.0f, 0.5f,
-        0.5f, -0.5f,
-        -0.5f, -0.5f
+        0.0f, 0.5f, 1.0f, 0.0f, 0.0f,       // (X, Y, R, G, B)
+        0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
     };
     // Create Vertex Array Object
     GLuint vao;
@@ -78,10 +82,46 @@ GLuint createTriangle()
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
 
-    // Specify the layout of the vertex data
+    // Specify the layout of the vertex data for position
     GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
     glEnableVertexAttribArray(posAttrib);
-    glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glVertexAttribPointer(
+        posAttrib,
+        2,                  // How many components
+        GL_FLOAT,
+        GL_FALSE,
+        5 * sizeof(float),  // How many Bytes to Jump after first read ?
+        0                   // position where to start from ?
+    );
+
+    // Read first data from 0 offset
+    // which is 2 components
+    // and then next data will be after 5 bytes from 0th offset
+
+    /**
+     * ---1------2-----3-----4-----5--
+     *   0.0f,  0.5f, 1.0f, 0.0f, 0.0f,       // (X, Y, R, G, B)
+     *  ------|------
+        2 Components
+        read first data from 0th offset
+        which is 2 component , 
+        then next data will be after 5 bytes
+         0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
+     *
+    */
+
+    // Specify the layout of the vertex data for color
+    GLint colorAttrib = glGetAttribLocation(shaderProgram, "color");
+    glEnableVertexAttribArray(colorAttrib);
+    glVertexAttribPointer(
+        colorAttrib,
+        3,                  // Kitni Byte ka Data Lena
+        GL_FLOAT,
+        GL_FALSE,
+        5 * sizeof(float),
+        (void *)(2 * sizeof(float))
+    );
 
     return shaderProgram;
 }
@@ -120,8 +160,8 @@ int main(int argc, char* argv[]) {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        GLuint unicolor = glGetUniformLocation(shaderProg, "triangleColor");
-        glUniform3f(unicolor, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
+        // GLuint unicolor = glGetUniformLocation(shaderProg, "triangleColor");
+        // glUniform3f(unicolor, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
         // Draw a triangle from the 3 vertices
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
