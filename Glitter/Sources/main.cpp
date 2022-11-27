@@ -28,7 +28,7 @@ const GLchar *fragmentSource = R"glsl(
     out vec4 outColor;
     void main()
     {
-        outColor = vec4(Color, 1.0);
+        outColor = vec4(1.0 - Color.x, 1.0 - Color.y, 1.0 - Color.z, 1.0);
     }
 )glsl";
 
@@ -54,11 +54,25 @@ GLuint createShader(const GLchar* src, GLenum shader)
 
 GLuint createTriangle()
 {
-    GLfloat vertices[] = {
-        0.0f, 0.5f, 1.0f, 0.0f, 0.0f,       // (X, Y, R, G, B)
-        0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-        -0.5f, -0.5f, 0.0f, 0.0f, 1.0f,
+    // render 2 triangles
+    // float vertices[] = {
+    //     -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, // Top-left         ==> 0
+    //     0.5f, 0.5f, 0.0f, 1.0f, 0.0f,  // Top-right        ==> 1
+    //     0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // Bottom-right     ==> 2
+
+    //     0.5f, -0.5f, 0.0f, 0.0f, 1.0f,  // Bottom-right     ==> 3
+    //     -0.5f, -0.5f, 1.0f, 1.0f, 1.0f, // Bottom-left      ==> 4
+    //     -0.5f, 0.5f, 1.0f, 0.0f, 0.0f   // Top-left         ==> 5
+    // };
+
+    // It can be optimized like this.
+    float vertices[] = {
+        -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, // Top-left          ===> 0
+        0.5f, 0.5f, 0.0f, 1.0f, 0.0f,  // Top-right         ===> 1
+        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // Bottom-right      ===> 2
+        -0.5f, -0.5f, 1.0f, 1.0f, 1.0f // Bottom-left       ===> 3
     };
+
     // Create Vertex Array Object
     GLuint vao;
     glGenVertexArrays(1, &vao);
@@ -70,6 +84,17 @@ GLuint createTriangle()
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    GLuint ebo;
+    glGenBuffers(1, &ebo);
+
+    GLuint elements[] = {
+        0, 1, 2, // ==> 1st Triangle
+        2, 3, 0  // ==> 2nd Triangle
+    };
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(elements), elements, GL_STATIC_DRAW);
 
     GLuint vertexShader = createShader(vertexSource, GL_VERTEX_SHADER);
     GLuint fragmentShader = createShader(fragmentSource, GL_FRAGMENT_SHADER);
@@ -163,7 +188,8 @@ int main(int argc, char* argv[]) {
         // GLuint unicolor = glGetUniformLocation(shaderProg, "triangleColor");
         // glUniform3f(unicolor, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX, (float)rand() / RAND_MAX);
         // Draw a triangle from the 3 vertices
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        // glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         // Flip Buffers and Draw
         glfwSwapBuffers(mWindow);
